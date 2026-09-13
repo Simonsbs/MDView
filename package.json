@@ -1,0 +1,85 @@
+{
+  "name": "mdview",
+  "version": "1.0.0",
+  "description": "A simple Markdown viewer with live refresh and Ctrl+scroll text sizing.",
+  "private": true,
+  "license": "MIT",
+  "main": "src/main.cjs",
+  "desktopName": "mdview.desktop",
+  "author": { "name": "Simon B.Stirling", "url": "https://github.com/Simonsbs" },
+  "homepage": "https://github.com/Simonsbs/MDView#readme",
+  "repository": { "type": "git", "url": "https://github.com/Simonsbs/MDView.git" },
+  "bugs": { "url": "https://github.com/Simonsbs/MDView/issues" },
+  "keywords": ["markdown", "viewer", "live-preview", "desktop", "windows", "linux"],
+  "engines": { "node": ">=22.22.1" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:ui": "npm run build && playwright test",
+    "notices": "node scripts/notices.mjs",
+    "dist:win": "npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb --x64 --publish never && node scripts/archive-linux.mjs",
+    "dist:linux:archive": "npm run build && electron-builder --linux --dir --x64 --publish never && node scripts/archive-linux.mjs",
+    "checksums": "node scripts/checksums.mjs",
+    "release:notes": "node scripts/release-notes.mjs"
+  },
+  "dependencies": {
+    "markdown-it": "15.0.2",
+    "markdown-it-task-lists": "2.1.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "electron": "44.3.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2",
+    "tar": "7.5.22"
+  },
+  "build": {
+    "appId": "app.mdview.desktop",
+    "productName": "MDView",
+    "asar": true,
+    "npmRebuild": false,
+    "copyright": "Copyright (c) 2026 Simon B.Stirling and MDView contributors",
+    "directories": { "output": "release", "buildResources": "assets" },
+    "files": ["src/**", "dist/**", "assets/icon.png", "package.json"],
+    "extraFiles": [
+      { "from": "LICENSE", "to": "LICENSE.mdview.txt" },
+      { "from": "THIRD_PARTY_NOTICES.md", "to": "THIRD_PARTY_NOTICES.md" },
+      { "from": "README.md", "to": "README.md" },
+      { "from": "CHANGELOG.md", "to": "CHANGELOG.md" }
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "MDView-${version}-windows-${arch}-setup.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "createDesktopShortcut": false,
+      "include": "assets/installer.nsh",
+      "license": "LICENSE",
+      "differentialPackage": false
+    },
+    "portable": {
+      "artifactName": "MDView-${version}-windows-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Office",
+      "executableName": "mdview",
+      "icon": "assets/icon.png",
+      "maintainer": "Simon B.Stirling <1129815+Simonsbs@users.noreply.github.com>",
+      "mimeTypes": ["text/markdown"],
+      "syncDesktopName": true,
+      "fileAssociations": [{ "ext": "md", "name": "MDView.Markdown", "description": "Markdown document", "mimeType": "text/markdown", "role": "Viewer" }],
+      "artifactName": "MDView-${version}-linux-x64.${ext}"
+    },
+    "deb": {
+      "compression": "gz",
+      "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils", "shared-mime-info", "libatspi2.0-0", "libuuid1", "libsecret-1-0", "libgbm1", "libasound2 | libasound2t64"]
+    }
+  }
+}

@@ -1,0 +1,110 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    env:
+      ELECTRON_BUILDER_COMPRESSION_LEVEL: '5'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1 libsecret-1-0 libxss1 libxtst6 libnotify4 xdg-utils desktop-file-utils shared-mime-info libfuse2 fakeroot
+      - run: npm ci --no-audit --no-fund
+      - run: npm run notices
+      - name: Check generated notices
+        run: git diff --exit-code -- THIRD_PARTY_NOTICES.md
+      - run: npm test
+      - name: Windows UI tests
+        if: runner.os == 'Windows'
+        run: npm run test:ui
+      - name: Linux UI tests
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:ui
+      - name: Build Windows release
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        run: npm run dist:win
+      - name: Check packaged Windows application
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $env:MDVIEW_EXECUTABLE = (Resolve-Path 'release/win-unpacked/MDView.exe').Path
+          node node_modules/@playwright/test/cli.js test
+      - name: Build Linux release
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
+        run: npm run dist:linux
+      - name: Check packaged Linux application
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
+        run: bash scripts/verify-linux.sh
+      - name: Upload packages
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packages-${{ runner.os }}
+          compression-level: 0
+          if-no-files-found: error
+          path: |
+            release/*-setup.exe
+            release/*-portable.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.tar.gz
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: diagnostics-${{ runner.os }}
+          path: test-results/
+          if-no-files-found: ignore
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: packages-*
+          merge-multiple: true
+          path: release
+      - run: node scripts/checksums.mjs --require-all
+      - run: node scripts/release-notes.mjs
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --title "MDView ${RELEASE_TAG#v}" --notes-file release/RELEASE_NOTES.md release/*-setup.exe release/*-portable.exe release/*.AppImage release/*.deb release/*.tar.gz release/SHA256SUMS.txt

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+test-results/
+playwright-report/
+.cache/
+.env
+.env.*
+*.log
+*.pem
+*.pfx
+*.p12
+Thumbs.db
+.DS_Store
