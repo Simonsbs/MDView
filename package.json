@@ -79,7 +79,7 @@
     },
     "deb": {
       "compression": "gz",
-      "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils", "shared-mime-info", "libatspi2.0-0", "libuuid1", "libsecret-1-0", "libgbm1", "libasound2 | libasound2t64"]
+      "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils", "shared-mime-info", "libfile-mimeinfo-perl", "libatspi2.0-0", "libuuid1", "libsecret-1-0", "libgbm1", "libasound2 | libasound2t64"]
     }
   }
 }

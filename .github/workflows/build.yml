@@ -33,7 +33,7 @@ jobs:
           cache: npm
       - name: Linux desktop dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update -qq && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1 libsecret-1-0 libxss1 libxtst6 libnotify4 xdg-utils desktop-file-utils shared-mime-info libfuse2 fakeroot
+        run: sudo apt-get update -qq && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1 libsecret-1-0 libxss1 libxtst6 libnotify4 xdg-utils desktop-file-utils shared-mime-info libfile-mimeinfo-perl libfuse2 fakeroot
       - run: npm ci --no-audit --no-fund
       - run: npm run notices
       - name: Check generated notices

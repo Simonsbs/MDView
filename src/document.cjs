@@ -72,7 +72,10 @@ class MarkdownDocument extends EventEmitter {
     const changed = () => { if (generation === this.generation) this.queueRefresh(); };
     try {
       // Watching the directory survives the atomic rename used by many editors.
-      this.watcher = fs.watch(path.dirname(file), { persistent: false }, (_, name) => {
+      // Expand Windows 8.3 paths before libuv watches them; short paths can abort
+      // affected Node/Electron runtimes instead of emitting a catchable error.
+      const directory = fs.realpathSync.native(path.dirname(file));
+      this.watcher = fs.watch(directory, { persistent: false }, (_, name) => {
         if (!name || String(name) === path.basename(file)) changed();
       });
       this.watcher.on('error', () => { this.watcher?.close(); this.watcher = null; });

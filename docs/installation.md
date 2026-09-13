@@ -6,7 +6,7 @@ Download packages from the [MDView GitHub releases](https://github.com/Simonsbs/
 
 - Windows 10 or newer, x64; or an x64 Linux graphical desktop.
 - Packaged applications include Electron and need no Node.js installation.
-- Linux needs GTK 3, NSS, ALSA, GBM, the usual X11/desktop libraries, `xdg-utils` and `shared-mime-info`. The Debian package declares its dependencies. AppImage and archives depend on the host providing these libraries.
+- Linux needs GTK 3, NSS, ALSA, GBM, the usual X11/desktop libraries, `xdg-utils` and `shared-mime-info`. Generic desktop sessions also need the `mimetype` utility (`libfile-mimeinfo-perl` on Debian/Ubuntu) so file-type detection uses the desktop MIME database. The Debian package declares its dependencies. AppImage and archives depend on the host providing these libraries.
 - Source builds use Node.js 24 LTS and npm.
 
 ## Windows
