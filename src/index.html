@@ -15,7 +15,17 @@
     </button>
     <span id="file-name" class="file-name">MDView</span>
     <span id="watch-status" class="watch-status" role="status" hidden><span class="status-dot"></span><span id="watch-label">Live</span></span>
-    <span class="zoom-hint" title="Hold Ctrl and scroll to resize the text">Ctrl + scroll <output id="zoom-level" aria-label="Text size">100%</output></span>
+    <div class="view-controls" role="group" aria-label="Reading appearance">
+      <div class="width-control">
+        <label for="reading-width">Width</label>
+        <input id="reading-width" type="range" min="20" max="100" step="1" value="80" aria-label="Reading width" title="Reading width: 20% to 100% of the window">
+        <output id="width-level" for="reading-width">80%</output>
+      </div>
+      <button id="theme-toggle" type="button" role="switch" aria-checked="false" title="Switch to dark mode">
+        Dark mode <span class="theme-track" aria-hidden="true"></span>
+      </button>
+      <span class="zoom-hint" title="Hold Ctrl and scroll to resize the text">Ctrl + scroll <output id="zoom-level" aria-label="Text size">100%</output></span>
+    </div>
   </header>
   <div id="notice" class="notice" role="alert" hidden></div>
   <main id="reader" tabindex="0" aria-label="Markdown document">

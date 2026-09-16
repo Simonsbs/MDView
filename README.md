@@ -29,8 +29,12 @@ The release includes `SHA256SUMS.txt`. These community packages are unsigned. Se
 1. Choose **Open file**, press **Ctrl+O**, drop a file into the window, or double-click a `.md` file once MDView is its default application.
 2. Edit and save in your usual editor. The preview updates automatically.
 3. Hold **Ctrl** and scroll up or down to resize the document text.
+4. Use **Dark mode** in the toolbar to switch between light and dark appearance.
+5. Drag the **Width** slider from **20%** to **100%**. At 100%, the document uses the full available window width with small edge margins. The starting width is 80%.
 
 Text size and reading position stay in place during refresh. Ordinary scrolling works as usual. The toolbar stays the same size.
+
+Your theme and width choices are remembered when you reopen MDView. Until you choose a theme, the app follows your system's light or dark appearance. The width slider also supports the arrow keys, Home for 20%, and End for 100%.
 
 ### Default application for `.md`
 
@@ -48,7 +52,7 @@ See [the platform-specific steps](docs/installation.md#default-application) for 
 - Links to websites open in your browser. Links to other Markdown files open in MDView.
 - Normal saves, atomic file replacement, and recovery when a file is deleted and recreated.
 - UTF-8 and UTF-16 files with byte-order marks.
-- Text sizes from 50% to 300%, and system light or dark appearance.
+- Text sizes from 50% to 300%, a light/dark mode switch, and reading widths from 20% to 100%.
 
 Native file events are backed by a check every 750 ms. A temporarily unavailable file keeps its last successful preview. Files have a 32 MB limit. Text size is remembered for the current session.
 

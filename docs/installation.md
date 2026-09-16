@@ -1,6 +1,6 @@
 # Installation
 
-Download packages from the [MDView GitHub releases](https://github.com/Simonsbs/MDView/releases). Filenames include their version and CPU architecture. The examples below use version 1.0.0.
+Download packages from the [MDView GitHub releases](https://github.com/Simonsbs/MDView/releases). Filenames include their version and CPU architecture. The examples below use version 1.1.0.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ Download packages from the [MDView GitHub releases](https://github.com/Simonsbs/
 
 ### Installer
 
-1. Run `MDView-1.0.0-windows-x64-setup.exe`.
+1. Run `MDView-1.1.0-windows-x64-setup.exe`.
 2. Complete the current-user installation. It adds a Start menu entry, an uninstaller and `.md` application registration.
 3. Leave **Open MDView and set the .md default** selected on the final page.
 4. In Windows Default apps, choose **MDView** for **`.md`**.
@@ -22,10 +22,10 @@ The installer does not require administrator rights. Packages are unsigned, so W
 
 ### Portable
 
-Run `MDView-1.0.0-windows-x64-portable.exe`. Keep it in a permanent location to use it as the default application:
+Run `MDView-1.1.0-windows-x64-portable.exe`. Keep it in a permanent location to use it as the default application:
 
 ```powershell
-.\MDView-1.0.0-windows-x64-portable.exe --make-default
+.\MDView-1.1.0-windows-x64-portable.exe --make-default
 ```
 
 Registration points to the portable launcher, not its temporary extracted executable. Repeat registration if you move or rename it.
@@ -33,7 +33,7 @@ Registration points to the portable launcher, not its temporary extracted execut
 ## Ubuntu and Debian
 
 ```sh
-sudo apt install ./MDView-1.0.0-linux-x64.deb
+sudo apt install ./MDView-1.1.0-linux-x64.deb
 mdview
 ```
 
@@ -44,8 +44,8 @@ The package provides an application-menu entry, a `mdview` command and the Markd
 ### AppImage
 
 ```sh
-chmod +x MDView-1.0.0-linux-x64.AppImage
-./MDView-1.0.0-linux-x64.AppImage
+chmod +x MDView-1.1.0-linux-x64.AppImage
+./MDView-1.1.0-linux-x64.AppImage
 ```
 
 Keep the AppImage at a stable path. Registration uses its real location rather than its temporary mount path. Without FUSE, use the archive, or extract the AppImage with `--appimage-extract` and run the extracted `mdview` executable.
@@ -53,8 +53,8 @@ Keep the AppImage at a stable path. Registration uses its real location rather t
 ### Archive
 
 ```sh
-tar -xzf MDView-1.0.0-linux-x64.tar.gz
-cd MDView-1.0.0-linux-x64
+tar -xzf MDView-1.1.0-linux-x64.tar.gz
+cd MDView-1.1.0-linux-x64
 ./mdview
 ```
 
@@ -109,7 +109,7 @@ sha256sum --check --ignore-missing SHA256SUMS.txt
 On Windows, compare the following output with the matching checksum entry:
 
 ```powershell
-Get-FileHash .\MDView-1.0.0-windows-x64-setup.exe -Algorithm SHA256
+Get-FileHash .\MDView-1.1.0-windows-x64-setup.exe -Algorithm SHA256
 ```
 
 Checksums detect damaged or mismatched downloads; they do not replace publisher signatures.

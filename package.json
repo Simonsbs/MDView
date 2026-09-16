@@ -1,6 +1,6 @@
 {
   "name": "mdview",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A simple Markdown viewer with live refresh and Ctrl+scroll text sizing.",
   "private": true,
   "license": "MIT",

@@ -11,11 +11,60 @@ const notice = document.querySelector('#notice');
 const watchStatus = document.querySelector('#watch-status');
 const watchLabel = document.querySelector('#watch-label');
 const zoomLabel = document.querySelector('#zoom-level');
+const widthSlider = document.querySelector('#reading-width');
+const widthLabel = document.querySelector('#width-level');
+const themeToggle = document.querySelector('#theme-toggle');
 const overlay = document.querySelector('#drop-overlay');
 let lastPath = null;
 let lastMarkdown = null;
 let zoom = 100;
 let layoutVersion = 0;
+
+function readPreference(key) {
+  try { return localStorage.getItem(`mdview.${key}`); }
+  catch { return null; }
+}
+
+function savePreference(key, value) {
+  try { localStorage.setItem(`mdview.${key}`, String(value)); }
+  catch { /* The controls still work when preferences cannot be saved. */ }
+}
+
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+const savedTheme = readPreference('theme');
+let preferredTheme = ['light', 'dark'].includes(savedTheme) ? savedTheme : null;
+
+function applyTheme() {
+  const theme = preferredTheme || (systemTheme.matches ? 'dark' : 'light');
+  document.documentElement.dataset.theme = theme;
+  themeToggle.setAttribute('aria-checked', String(theme === 'dark'));
+  themeToggle.title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+}
+
+function applyWidth(width) {
+  article.style.setProperty('--reading-width', `${width}%`);
+  widthSlider.value = String(width);
+  widthSlider.setAttribute('aria-valuetext', `${width}% of the window`);
+  widthLabel.textContent = `${width}%`;
+}
+
+applyTheme();
+const savedWidth = Number(readPreference('width'));
+applyWidth(Number.isFinite(savedWidth) && savedWidth >= 20 && savedWidth <= 100 ? Math.round(savedWidth) : 80);
+systemTheme.addEventListener('change', () => { if (!preferredTheme) applyTheme(); });
+themeToggle.addEventListener('click', () => {
+  preferredTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  savePreference('theme', preferredTheme);
+});
+widthSlider.addEventListener('input', () => {
+  const position = capturePosition();
+  const width = widthSlider.valueAsNumber;
+  applyWidth(width);
+  layoutVersion++;
+  restorePosition(position);
+  savePreference('width', width);
+});
 
 const blockKey = element => `${element.tagName}:${element.textContent}`;
 

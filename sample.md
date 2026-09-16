@@ -7,6 +7,8 @@ Open a Markdown file and leave it beside your editor. Every save appears here au
 - **Open file** or **Ctrl+O** to choose a document.
 - Save changes in your usual editor. MDView keeps up.
 - Hold **Ctrl** and **scroll** to adjust the text size.
+- Switch **Dark mode** on or off to choose your appearance.
+- Drag **Width** from **20%** to **100%** to fit the way you read.
 
 > Your reading position stays in place while the document refreshes.
 

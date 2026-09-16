@@ -6,6 +6,18 @@ User-visible changes are recorded here. Versions follow [Semantic Versioning](ht
 
 No changes yet.
 
+## [1.1.0] - 2026-09-16
+
+### Added
+
+- A toolbar switch for light and dark mode, with your choice remembered across launches. The app follows the system appearance until you choose a theme.
+- A reading-width slider from 20% to 100% of the available window width, starting at 80%. Full width removes the previous fixed maximum, and your choice is remembered across launches.
+- Keyboard support for the width slider and a toolbar that wraps to keep the controls usable in narrow windows.
+
+### Changed
+
+- Preserve the current reading position when adjusting the width. Live refresh and Ctrl+scroll text sizing continue to work with either theme and any width.
+
 ## [1.0.0] - 2026-09-13
 
 ### Added
@@ -28,5 +40,6 @@ No changes yet.
 - Windows packages are unsigned. Linux packages require a compatible graphical desktop.
 - Windows default selection uses the system's own confirmation and cannot be silently forced by the installer.
 
-[Unreleased]: https://github.com/Simonsbs/MDView/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Simonsbs/MDView/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Simonsbs/MDView/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Simonsbs/MDView/releases/tag/v1.0.0
