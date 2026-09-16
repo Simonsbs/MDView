@@ -23,6 +23,8 @@ async function launch(filePath) {
   });
   page = await application.firstWindow();
   await page.waitForLoadState('domcontentloaded');
+  // Let Electron's native theme reach the page instead of Playwright's light-mode override.
+  await page.emulateMedia({ colorScheme: null });
 }
 
 test.beforeEach(async () => {
