@@ -12,18 +12,27 @@ Linux UI tests require Electron's system libraries and a display or Xvfb. CI's e
 
 ## Architecture
 
-The app uses plain JavaScript, Electron, markdown-it and esbuild. It has no application server.
+The app uses plain JavaScript, Electron, markdown-it, ProseMirror and esbuild. It has no application server. Viewing remains the default; visual editing is explicitly entered and saved.
 
 | Path | Responsibility |
 | --- | --- |
 | `src/main.cjs` | Window, file picker, IPC, resources and startup |
-| `src/document.cjs` | Read-only loading, watching, polling and recovery |
+| `src/document.cjs` | Loading, watching, conflict-checked saves, encoding and recovery |
+| `src/atomic-replace.cjs` | Atomic file replacement, preserving Windows file security metadata |
 | `src/default-app.cjs` | Windows registration and Linux desktop/MIME defaults |
 | `src/preload.cjs` | Narrow bridge for the sandboxed renderer |
 | `src/renderer.js` | Rendering, scroll retention, keyboard and wheel input |
+| `src/editor.js` | Visual editor, formatting commands, tables and task controls |
+| `src/editor-markdown.js` | CommonMark/GFM schema, safe parsing and Markdown serialization |
 | `src/index.html`, `src/styles.css` | Layout and styling |
 | `assets/installer.nsh` | Windows setup registration and removal |
 | `tests/`, `scripts/` | Verification, packaging and release tooling |
+
+The editor keeps a draft until Save (Ctrl+S); Edit uses Ctrl+E. Saving keeps the editor, selection and undo history intact and advances the saved-document baseline. Cancel, opening another document and closing the window protect changes made since the last save with a discard confirmation. Saving is restricted to the currently opened document and checks its identity and on-disk content before replacing it. Outside changes keep the draft available and block the save.
+
+Changed documents preserve their UTF-8 or BOM-marked UTF-16 encoding, BOM and newline style. An unchanged editor document does not write the file. Serialization may normalize source whitespace, list markers and reference links. Unsupported table structures throw before writing. Both the viewer and editor disable raw HTML; editor link and image attributes are validated.
+
+Windows saves use the built-in Windows PowerShell to call .NET File.Replace; file paths are passed as child-process environment data. Linux uses an atomic rename. A failed replacement leaves the draft available in the editor.
 
 ## Tests
 
@@ -32,7 +41,7 @@ npm test
 npm run test:ui
 ```
 
-The filesystem suite exercises real saves, replacement, deletion, recovery, switching and encoding. Association tests isolate registration calls and XDG directories. Playwright launches the actual app to check rendering, opening, live refresh, scrolling, zoom and links. Native file-picker selections and external browser launches are stubbed while exercising real IPC.
+The filesystem suite exercises real saves, conflict detection, replacement, deletion, recovery, switching and encoding. Markdown tests cover editing round trips, task state, table alignment and escaping, and unsupported structures. Association tests isolate registration calls and XDG directories. Playwright launches the actual app to check viewing, editing, saving, cancellation, unsaved-change prompts, live refresh and appearance controls. Native file-picker selections and external browser launches are stubbed while exercising real IPC.
 
 UI tests pass `--no-default-registration` so test runs cannot change a developer's desktop preferences. Installation and association checks are separate.
 

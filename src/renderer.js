@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
+import { createVisualEditor } from './editor.js';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, typographer: false }).use(taskLists);
 const reader = document.querySelector('#reader');
@@ -15,6 +16,22 @@ const widthSlider = document.querySelector('#reading-width');
 const widthLabel = document.querySelector('#width-level');
 const themeToggle = document.querySelector('#theme-toggle');
 const overlay = document.querySelector('#drop-overlay');
+const editorHost = document.querySelector('#editor');
+const editButton = document.querySelector('#edit-file');
+const saveButton = document.querySelector('#save-file');
+const cancelButton = document.querySelector('#cancel-edit');
+const editToolbar = document.querySelector('#edit-toolbar');
+const editStatus = document.querySelector('#edit-status');
+const discardDialog = document.querySelector('#discard-dialog');
+const insertDialog = document.querySelector('#insert-dialog');
+let currentState = null;
+let editor = null;
+let editBase = null;
+let saving = false;
+let savedInSession = false;
+let editError = '';
+let insertKind = 'link';
+let reportedDirty = false;
 let lastPath = null;
 let lastMarkdown = null;
 let zoom = 100;
@@ -43,6 +60,7 @@ function applyTheme() {
 
 function applyWidth(width) {
   article.style.setProperty('--reading-width', `${width}%`);
+  editorHost.style.setProperty('--reading-width', `${width}%`);
   widthSlider.value = String(width);
   widthSlider.setAttribute('aria-valuetext', `${width}% of the window`);
   widthLabel.textContent = `${width}%`;
@@ -70,7 +88,7 @@ const blockKey = element => `${element.tagName}:${element.textContent}`;
 
 function capturePosition() {
   const top = reader.getBoundingClientRect().top;
-  const blocks = [...article.children];
+  const blocks = [...(editor?.view.dom || article).children];
   const index = blocks.findIndex(element => element.getBoundingClientRect().bottom > top + 1);
   const block = blocks[index];
   const key = block ? blockKey(block) : null;
@@ -84,24 +102,31 @@ function capturePosition() {
 
 function restorePosition(position) {
   if (position.top === 0) { reader.scrollTop = 0; return; }
-  const match = [...article.children].filter(element => blockKey(element) === position.key)[position.occurrence];
+  const match = [...(editor?.view.dom || article).children].filter(element => blockKey(element) === position.key)[position.occurrence];
   reader.scrollTop = match
     ? reader.scrollTop + match.getBoundingClientRect().top - reader.getBoundingClientRect().top - position.offset
     : position.top;
 }
 
 function render(state) {
+  if (editor && state.documentId !== editBase.documentId) stopEditing();
+  currentState = state;
   fileName.textContent = state.name || 'MDView';
   fileName.title = state.path || '';
-  notice.textContent = state.notice || state.error;
+  notice.textContent = editError || (editor && !saving && state.markdown !== editBase.markdown
+    ? 'This file changed in another app. Your draft is kept here. Cancel editing to load the latest version before making further changes.'
+    : state.notice || state.error);
   notice.hidden = !notice.textContent;
   watchStatus.hidden = !state.path;
   watchStatus.classList.toggle('waiting', Boolean(state.error));
-  watchLabel.textContent = state.error ? 'Waiting' : 'Live';
+  watchLabel.textContent = editor ? 'Editing' : state.error ? 'Waiting' : 'Live';
   watchStatus.title = state.error || 'Watching this file for changes';
   emptyState.hidden = Boolean(state.path);
-  article.hidden = !state.path;
-  emptyFile.hidden = !state.path || Boolean(state.markdown.trim());
+  article.hidden = !state.path || Boolean(editor);
+  emptyFile.hidden = Boolean(editor) || !state.path || Boolean(state.markdown.trim());
+  editButton.hidden = !state.path || Boolean(editor);
+  editButton.disabled = Boolean(state.error);
+  if (editor) return;
   if (state.path === lastPath && state.markdown === lastMarkdown) return;
 
   const sameDocument = state.path === lastPath;
@@ -137,11 +162,179 @@ function render(state) {
   lastMarkdown = state.markdown;
 }
 
+function updateEditing() {
+  if (!editor) return;
+  const dirty = editor.dirty;
+  if (dirty !== reportedDirty) {
+    reportedDirty = dirty;
+    void window.mdview.setDirty(dirty);
+  }
+  editStatus.textContent = saving ? 'Saving...' : dirty ? 'Unsaved changes' : savedInSession ? 'Saved' : 'Editing';
+  saveButton.disabled = saving;
+  cancelButton.disabled = saving;
+  editor.updateToolbar(editToolbar);
+}
+
+function startEditing() {
+  if (editor || !currentState?.path || currentState.error) return;
+  editError = '';
+  savedInSession = false;
+  const position = capturePosition();
+  editBase = currentState;
+  try {
+    editor = createVisualEditor(editorHost, {
+      markdown: editBase.markdown, documentId: editBase.documentId, onChange: updateEditing,
+    });
+  } catch (error) {
+    editError = `Could not edit this document. ${error.message}`;
+    editorHost.replaceChildren();
+    editBase = null;
+    render(currentState);
+    return;
+  }
+  editorHost.hidden = false;
+  editorHost.inert = false;
+  editToolbar.hidden = false;
+  saveButton.hidden = false;
+  cancelButton.hidden = false;
+  layoutVersion++;
+  render(currentState);
+  restorePosition(position);
+  editor.view.focus();
+  updateEditing();
+}
+
+function stopEditing() {
+  editor?.destroy();
+  editor = null;
+  editorHost.replaceChildren();
+  editorHost.hidden = true;
+  editToolbar.hidden = true;
+  saveButton.hidden = true;
+  cancelButton.hidden = true;
+  discardDialog.close();
+  insertDialog.close();
+  editBase = null;
+  editError = '';
+  savedInSession = false;
+  reportedDirty = false;
+  void window.mdview.setDirty(false);
+}
+
+function leaveEditing() {
+  const position = capturePosition();
+  stopEditing();
+  // Re-render even after a save whose watcher event arrived during editing.
+  lastMarkdown = null;
+  render(currentState);
+  restorePosition(position);
+}
+
+async function saveEditing() {
+  if (!editor || saving) return;
+  if (!editor.dirty) {
+    savedInSession = true;
+    updateEditing();
+    editor.view.focus();
+    return;
+  }
+  saving = true;
+  editError = '';
+  editor.view.setProps({ editable: () => false });
+  editorHost.inert = true;
+  editToolbar.inert = true;
+  updateEditing();
+  try {
+    const result = await window.mdview.save({
+      markdown: editor.getMarkdown(), baseMarkdown: editBase.markdown, documentId: editBase.documentId,
+    });
+    if (result.ok) {
+      currentState = result.state;
+      editBase = result.state;
+      editor.markSaved();
+      savedInSession = true;
+    } else {
+      editError = result.error;
+      if (result.state) currentState = result.state;
+      render(currentState);
+    }
+  } catch (error) {
+    editError = `Could not save. ${error.message}`;
+    render(currentState);
+  } finally {
+    saving = false;
+    editorHost.inert = false;
+    editToolbar.inert = false;
+    editor?.view.setProps({ editable: () => true });
+    updateEditing();
+    render(currentState);
+    editor?.view.focus();
+  }
+}
+
+function cancelEditing() {
+  if (!editor || saving) return;
+  if (editor.dirty) {
+    discardDialog.returnValue = 'keep';
+    discardDialog.showModal();
+  }
+  else leaveEditing();
+}
+
+editButton.addEventListener('click', startEditing);
+saveButton.addEventListener('click', () => void saveEditing());
+cancelButton.addEventListener('click', cancelEditing);
+discardDialog.addEventListener('close', () => {
+  if (!editor) return;
+  if (discardDialog.returnValue === 'discard') leaveEditing();
+  else editor.view.focus();
+});
+// Preserve the selection when a formatting button is clicked.
+editToolbar.addEventListener('mousedown', event => { if (event.target.closest('button')) event.preventDefault(); });
+editToolbar.addEventListener('click', event => {
+  const command = event.target.closest('[data-command]')?.dataset.command;
+  if (!command || !editor || saving) return;
+  if (['link', 'image'].includes(command)) {
+    insertKind = command;
+    document.querySelector('#insert-title').textContent = `Insert ${command}`;
+    document.querySelector('#insert-text-label').textContent = command === 'image' ? 'Image description' : 'Link text';
+    document.querySelector('#insert-text').value = editor.selectionText();
+    document.querySelector('#insert-url').value = '';
+    document.querySelector('#insert-error').hidden = true;
+    insertDialog.showModal();
+    document.querySelector('#insert-url').focus();
+  } else editor.run(command);
+});
+document.querySelector('#block-format').addEventListener('change', event => editor?.setBlock(event.target.value));
+document.querySelector('#insert-cancel').addEventListener('click', () => insertDialog.close());
+insertDialog.addEventListener('close', () => editor?.view.focus());
+document.querySelector('#insert-form').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!editor) return;
+  const url = document.querySelector('#insert-url').value.trim();
+  const scheme = /^([a-z][a-z\d+.-]*):/i.exec(url)?.[1]?.toLowerCase();
+  if (!url || (scheme && !['https', 'http', ...(insertKind === 'link' ? ['mailto'] : [])].includes(scheme))) {
+    const error = document.querySelector('#insert-error');
+    error.textContent = 'Use a web URL or a relative file path.';
+    error.hidden = false;
+    return;
+  }
+  editor.insert(insertKind, document.querySelector('#insert-text').value, url);
+  insertDialog.close();
+});
+
 document.querySelector('#open-file').addEventListener('click', () => window.mdview.chooseFile());
 window.addEventListener('keydown', event => {
-  if (event.ctrlKey && event.key.toLowerCase() === 'o') {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'o') {
     event.preventDefault();
     if (!event.repeat) void window.mdview.chooseFile();
+  }
+  if ((event.ctrlKey || event.metaKey) && ['s', 'e'].includes(event.key.toLowerCase())) {
+    event.preventDefault();
+    if (event.repeat || document.querySelector('dialog[open]')) return;
+    if (event.key.toLowerCase() === 's') void saveEditing();
+    else if (editor) cancelEditing();
+    else startEditing();
   }
 });
 
@@ -154,6 +347,7 @@ window.addEventListener('wheel', event => {
   const position = capturePosition();
   zoom = nextZoom;
   article.style.fontSize = `${18 * zoom / 100}px`;
+  editorHost.style.fontSize = `${18 * zoom / 100}px`;
   zoomLabel.textContent = `${zoom}%`;
   layoutVersion++;
   restorePosition(position);
@@ -195,6 +389,12 @@ window.addEventListener('drop', event => {
   if (file) void window.mdview.openDroppedFile(file);
 });
 window.addEventListener('blur', () => { dragDepth = 0; overlay.hidden = true; });
+window.addEventListener('beforeunload', event => {
+  if (saving || editor?.dirty) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+});
 
 window.mdview.onChange(render);
 window.mdview.getState().then(render);

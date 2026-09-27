@@ -14,6 +14,9 @@
       Open file
     </button>
     <span id="file-name" class="file-name">MDView</span>
+    <button id="edit-file" type="button" title="Edit this document (Ctrl+E)" hidden>Edit</button>
+    <button id="save-file" type="button" title="Save changes (Ctrl+S)" hidden>Save</button>
+    <button id="cancel-edit" type="button" hidden>Cancel</button>
     <span id="watch-status" class="watch-status" role="status" hidden><span class="status-dot"></span><span id="watch-label">Live</span></span>
     <div class="view-controls" role="group" aria-label="Reading appearance">
       <div class="width-control">
@@ -27,6 +30,35 @@
       <span class="zoom-hint" title="Hold Ctrl and scroll to resize the text">Ctrl + scroll <output id="zoom-level" aria-label="Text size">100%</output></span>
     </div>
   </header>
+  <div id="edit-toolbar" class="edit-toolbar" role="toolbar" aria-label="Text formatting" hidden>
+    <select id="block-format" aria-label="Text style">
+      <option value="paragraph">Paragraph</option>
+      <option value="heading-1">Heading 1</option>
+      <option value="heading-2">Heading 2</option>
+      <option value="heading-3">Heading 3</option>
+      <option value="heading-4">Heading 4</option>
+      <option value="heading-5">Heading 5</option>
+      <option value="heading-6">Heading 6</option>
+    </select>
+    <button type="button" data-command="bold" aria-label="Bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+    <button type="button" data-command="italic" aria-label="Italic" title="Italic (Ctrl+I)"><em>I</em></button>
+    <button type="button" data-command="strike" aria-label="Strikethrough" title="Strikethrough"><s>S</s></button>
+    <button type="button" data-command="code" aria-label="Inline code" title="Inline code">&lt;/&gt;</button>
+    <span class="tool-divider" aria-hidden="true"></span>
+    <button type="button" data-command="bullet" aria-label="Bullet list">Bullets</button>
+    <button type="button" data-command="ordered" aria-label="Numbered list">Numbers</button>
+    <button type="button" data-command="task" aria-label="Task list">Tasks</button>
+    <button type="button" data-command="quote" aria-label="Quote">Quote</button>
+    <button type="button" data-command="codeblock" aria-label="Code block">Code</button>
+    <button type="button" data-command="link" aria-label="Insert link">Link</button>
+    <button type="button" data-command="image" aria-label="Insert image">Image</button>
+    <button type="button" data-command="table" aria-label="Insert table">Table</button>
+    <button type="button" data-command="row" aria-label="Add table row" hidden>+ Row</button>
+    <button type="button" data-command="column" aria-label="Add table column" hidden>+ Column</button>
+    <button type="button" data-command="undo" aria-label="Undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button type="button" data-command="redo" aria-label="Redo" title="Redo (Ctrl+Y)">Redo</button>
+    <span id="edit-status" role="status">Editing</span>
+  </div>
   <div id="notice" class="notice" role="alert" hidden></div>
   <main id="reader" tabindex="0" aria-label="Markdown document">
     <div id="empty-state" class="empty-state">
@@ -36,9 +68,34 @@
       <p class="empty-note">Changes appear automatically as you save.</p>
     </div>
     <article id="markdown" class="markdown" hidden></article>
+    <div id="editor" class="markdown" hidden></div>
     <p id="empty-file" class="empty-file" hidden>This file is empty.</p>
   </main>
   <div id="drop-overlay" class="drop-overlay" hidden>Drop your Markdown file</div>
+  <dialog id="discard-dialog" aria-labelledby="discard-title">
+    <form method="dialog">
+      <h2 id="discard-title">Discard your changes?</h2>
+      <p>Your edits have not been saved.</p>
+      <div class="dialog-actions">
+        <button value="keep" autofocus>Keep editing</button>
+        <button value="discard">Discard changes</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="insert-dialog" aria-labelledby="insert-title">
+    <form id="insert-form">
+      <h2 id="insert-title">Insert link</h2>
+      <label for="insert-text" id="insert-text-label">Link text</label>
+      <input id="insert-text" type="text" autocomplete="off">
+      <label for="insert-url" id="insert-url-label">URL or relative path</label>
+      <input id="insert-url" type="text" required autocomplete="off" spellcheck="false">
+      <p id="insert-error" class="dialog-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="insert-cancel" type="button">Cancel</button>
+        <button type="submit">Insert</button>
+      </div>
+    </form>
+  </dialog>
   <script src="renderer.js"></script>
 </body>
 </html>

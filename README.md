@@ -6,7 +6,7 @@
 
 **A simple Markdown viewer for Windows and Linux.** Open a file, keep writing in your preferred editor, and see saved changes appear automatically. Hold **Ctrl** and scroll to change the text size.
 
-MDView exists for people who want a readable preview beside their editor, without an editing workspace, account or configuration screen. It reads your files without changing them.
+MDView opens in a readable preview beside your usual editor, without an account or configuration screen. For quick changes, switch to the optional visual editor and save directly to the open file.
 
 ![MDView displaying a Markdown document](docs/images/viewer.png)
 
@@ -36,6 +36,16 @@ Text size and reading position stay in place during refresh. Ordinary scrolling 
 
 Your theme and width choices are remembered when you reopen MDView. Until you choose a theme, the app follows your system's light or dark appearance. The width slider also supports the arrow keys, Home for 20%, and End for 100%.
 
+### Edit in the view
+
+Choose **Edit** or press **Ctrl+E** to edit the formatted document. The toolbar provides headings, bold, italic, strikethrough, inline code, lists and tasks, quotes, code blocks, links, images, tables, row and column insertion, undo and redo.
+
+Choose **Save** or press **Ctrl+S** to write your changes and keep editing, with your cursor position and undo history preserved. **Cancel** returns to the preview and asks before discarding changes made since the last save. MDView also asks before discarding unsaved changes when opening another file or closing the window.
+
+If another app changes the file while you edit, your draft stays in the editor and saving is blocked. Cancel editing to load the latest file. Saves preserve UTF-8 or BOM-marked UTF-16 encoding, the byte-order mark and the existing newline style. Opening the editor and saving without changes leaves the file's bytes untouched.
+
+Visual edits can normalize Markdown source formatting, including list markers, reference links and whitespace. Tables keep their alignment, but edits that Markdown cannot represent, such as merged cells or line breaks inside cells, are rejected without saving.
+
 ### Default application for `.md`
 
 The Windows installer registers MDView and offers to open Windows Default apps at the end of setup. Select **MDView** for **`.md`** there. Windows requires this confirmation when replacing an existing protected choice.
@@ -56,7 +66,7 @@ See [the platform-specific steps](docs/installation.md#default-application) for 
 
 Native file events are backed by a check every 750 ms. A temporarily unavailable file keeps its last successful preview. Files have a 32 MB limit. Text size is remembered for the current session.
 
-Raw HTML is shown as text. Scripts in Markdown do not execute. MDView does not upload documents or send telemetry, although a document's remote images make requests to their image hosts. It does not edit files, render Mermaid diagrams, or provide syntax highlighting.
+Raw HTML is shown as text in both viewing and editing modes. Scripts in Markdown do not execute. MDView does not upload documents or send telemetry, although a document's remote images make requests to their image hosts. It does not render Mermaid diagrams or provide syntax highlighting.
 
 ## Build and test
 

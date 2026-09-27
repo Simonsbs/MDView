@@ -10,6 +10,9 @@ const document = new MarkdownDocument();
 let window;
 let notice = '';
 let choosingFile = false;
+let openingFile = false;
+let savingFile = false;
+let dirty = false;
 
 app.setName('MDView');
 protocol.registerSchemesAsPrivileged([
@@ -26,18 +29,37 @@ function publish() {
   window.webContents.send('document:changed', state());
 }
 
+function confirmDiscard(force = false) {
+  if (!dirty && !force) return true;
+  return dialog.showMessageBoxSync(window, {
+    type: 'warning',
+    title: 'Unsaved changes',
+    message: 'Discard your unsaved changes?',
+    detail: 'Your edits will be lost if you continue.',
+    buttons: ['Discard changes', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  }) === 0;
+}
+
 async function openFile(file) {
+  if (savingFile || openingFile || !confirmDiscard()) return;
+  openingFile = true;
   try {
     await document.open(file);
+    dirty = false;
     notice = '';
   } catch (error) {
     notice = `Could not open ${path.basename(String(file))}. ${describeError(error)}`;
+  } finally {
+    openingFile = false;
   }
   publish();
 }
 
 async function chooseFile() {
-  if (choosingFile) return;
+  if (choosingFile || savingFile || openingFile) return;
   choosingFile = true;
   try {
     const result = await dialog.showOpenDialog(window, {
@@ -49,6 +71,25 @@ async function chooseFile() {
     if (!result.canceled && result.filePaths[0]) await openFile(result.filePaths[0]);
   } finally {
     choosingFile = false;
+  }
+}
+
+async function saveFile(request) {
+  if (savingFile || openingFile || choosingFile) return { ok: false, error: 'Wait for the current file operation to finish.', state: state() };
+  if (!request || typeof request !== 'object' || request.documentId !== document.generation) {
+    return { ok: false, error: 'This document is no longer open. Your edits have been kept.', state: state() };
+  }
+  savingFile = true;
+  try {
+    await document.save(request.markdown, request.baseMarkdown, request.documentId);
+    dirty = false;
+    notice = '';
+    publish();
+    return { ok: true, state: state() };
+  } catch (error) {
+    return { ok: false, error: error.message || 'The file could not be saved. Your edits have been kept.', conflict: error.code === 'DOCUMENT_CONFLICT', state: state() };
+  } finally {
+    savingFile = false;
   }
 }
 
@@ -109,6 +150,8 @@ app.whenReady().then(async () => {
   handle('document:choose', chooseFile);
   handle('document:drop', file => typeof file === 'string' && file ? openFile(file) : undefined);
   handle('document:link', followLink);
+  handle('document:save', saveFile);
+  handle('document:dirty', value => { if (typeof value === 'boolean') dirty = value; });
   document.on('change', () => { notice = ''; publish(); });
 
   window = new BrowserWindow({
@@ -136,6 +179,23 @@ app.whenReady().then(async () => {
   // Only the document text changes size. Native browser zoom stays disabled.
   window.webContents.setZoomMode('disabled');
   window.once('ready-to-show', () => window.show());
+  window.on('close', event => {
+    if (savingFile) {
+      event.preventDefault();
+      notice = 'Wait for the current save to finish before closing MDView.';
+      publish();
+    } else if (dirty) {
+      event.preventDefault();
+      // This is an explicit native discard approval. Bypass beforeunload once,
+      // because the renderer still holds the draft we just agreed to discard.
+      if (confirmDiscard()) window.destroy();
+    }
+  });
+  window.webContents.on('will-prevent-unload', event => {
+    // The renderer can notice an edit before its dirty IPC reaches this process.
+    // preventDefault here allows the close, so only do it after approval.
+    if (!savingFile && confirmDiscard(true)) event.preventDefault();
+  });
   window.on('closed', () => { document.close(); window = null; });
   await window.loadURL(PAGE_URL);
   const args = process.argv.slice(process.defaultApp ? 2 : 1);

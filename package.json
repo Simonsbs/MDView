@@ -1,7 +1,7 @@
 {
   "name": "mdview",
-  "version": "1.1.0",
-  "description": "A simple Markdown viewer with live refresh and Ctrl+scroll text sizing.",
+  "version": "1.2.0",
+  "description": "A Markdown viewer with optional visual editing, live refresh and Ctrl+scroll text sizing.",
   "private": true,
   "license": "MIT",
   "main": "src/main.cjs",
@@ -26,7 +26,16 @@
   },
   "dependencies": {
     "markdown-it": "15.0.2",
-    "markdown-it-task-lists": "2.1.1"
+    "markdown-it-task-lists": "2.1.1",
+    "prosemirror-commands": "1.7.2",
+    "prosemirror-history": "1.5.0",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-markdown": "1.13.8",
+    "prosemirror-model": "1.25.12",
+    "prosemirror-schema-list": "1.5.1",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-tables": "1.8.5",
+    "prosemirror-view": "1.42.6"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

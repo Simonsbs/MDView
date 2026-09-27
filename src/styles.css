@@ -30,6 +30,7 @@
 html, body { height: 100%; margin: 0; overflow: hidden; }
 body { display: flex; flex-direction: column; }
 .toolbar {
+  flex-wrap: wrap;
   min-height: 58px;
   flex-shrink: 0;
   display: flex;
@@ -57,7 +58,23 @@ button {
   cursor: pointer;
 }
 button:hover { background: var(--code); }
+button:disabled { cursor: default; opacity: .5; }
+button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--code); }
+select { color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 6px; font: inherit; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+#save-file { color: var(--surface); background: var(--accent); border-color: var(--accent); }
+.edit-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 8px 20px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 12px; flex-shrink: 0; max-height: 35vh; overflow: auto; }
+.edit-toolbar button { padding: 6px 9px; min-height: 30px; }
+.tool-divider { height: 20px; border-left: 1px solid var(--border); margin: 0 3px; }
+#edit-status { margin-left: auto; padding: 4px 0 4px 10px; color: var(--muted); white-space: nowrap; }
+dialog { color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; width: min(440px, calc(100vw - 32px)); box-shadow: 0 12px 48px #0003; }
+dialog::backdrop { background: #0006; }
+dialog h2 { font-size: 19px; margin: 0 0 14px; }
+dialog p { font-size: 14px; line-height: 1.5; }
+dialog label { display: block; margin: 14px 0 6px; font-size: 13px; }
+dialog input { width: 100%; padding: 8px; font: inherit; background: var(--background); color: var(--text); border: 1px solid var(--border); border-radius: 5px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; font-size: 13px; }
+.dialog-error { color: var(--warning); }
 .file-name { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .watch-status { display: flex; align-items: center; gap: 6px; color: var(--accent); }
 .status-dot { height: 6px; width: 6px; border-radius: 50%; background: currentColor; }
@@ -115,6 +132,22 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .markdown hr { border: 0; border-top: 1px solid var(--border); margin: 2em 0; }
 .markdown .task-list-item { list-style: none; }
 .markdown .task-list-item-checkbox { margin: 0 .5em 0 -1.4em; accent-color: var(--accent); width: .9em; height: .9em; vertical-align: baseline; }
+#editor .ProseMirror { position: relative; outline: none; min-height: 50vh; white-space: pre-wrap; overflow-wrap: break-word; font-variant-ligatures: none; }
+#editor .ProseMirror > :first-child { margin-top: 0; }
+#editor .ProseMirror pre { white-space: pre-wrap; }
+#editor .ProseMirror li { position: relative; }
+#editor .ProseMirror li > .task-content > p { margin: 0; }
+#editor .ProseMirror .task-list-item > .task-list-item-checkbox { position: absolute; top: .45em; left: 0; cursor: pointer; }
+#editor .ProseMirror-hideselection *::selection { background: transparent; }
+#editor .ProseMirror-hideselection { caret-color: transparent; }
+#editor .ProseMirror-selectednode { outline: 2px solid var(--accent); }
+#editor .ProseMirror li.ProseMirror-selectednode { outline: none; }
+#editor .ProseMirror img.ProseMirror-separator { display: inline; border: none !important; margin: 0 !important; width: 0 !important; height: 0 !important; }
+#editor .ProseMirror table { width: 100%; table-layout: fixed; display: table; }
+#editor .ProseMirror td, #editor .ProseMirror th { position: relative; min-width: 1em; vertical-align: top; }
+#editor .ProseMirror td > p, #editor .ProseMirror th > p { margin: 0; }
+#editor .ProseMirror .selectedCell::after { content: ""; position: absolute; inset: 0; z-index: 2; background: var(--accent); opacity: .15; pointer-events: none; }
+#editor .ProseMirror .tableWrapper { overflow-x: auto; }
 @media (max-width: 840px) {
   .toolbar { flex-wrap: wrap; gap: 12px; }
   .view-controls { flex-basis: 100%; justify-content: space-between; gap: 12px; }

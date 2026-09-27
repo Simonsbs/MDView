@@ -274,10 +274,14 @@ test('width ranges from 20% to the full window and responds to resizing and drag
   await expect(slider).toHaveValue('100');
   expect(await widthRatio()).toBeCloseTo(1, 2);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1400, 760));
+  // The width ratio also matches before the native resize reaches the renderer.
+  await expect.poll(() => page.evaluate(() => [innerWidth, innerHeight])).toEqual([1400, 760]);
   await expect.poll(widthRatio).toBeCloseTo(1, 2);
   expect((await page.locator('#markdown').boundingBox()).width).toBeGreaterThan(1200);
   await expect(page.locator('#markdown')).toHaveCSS('font-size', '18px');
   await expect(page.locator('#zoom-level')).toHaveText('100%');
+  // Wait for a stable, hit-testable slider before using raw mouse coordinates.
+  await slider.hover();
   const bounds = await slider.boundingBox();
   await page.mouse.move(bounds.x + bounds.width - 7, bounds.y + bounds.height / 2);
   await page.mouse.down();
@@ -288,6 +292,7 @@ test('width ranges from 20% to the full window and responds to resizing and drag
   expect(chosenWidth).toBeLessThan(70);
   expect(await widthRatio()).toBeCloseTo(chosenWidth / 100, 2);
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(440, 600));
+  await expect.poll(() => page.evaluate(() => [innerWidth, innerHeight])).toEqual([440, 600]);
   await expect.poll(widthRatio).toBeCloseTo(chosenWidth / 100, 2);
   for (const control of [page.getByRole('button', { name: 'Open file' }), slider, page.getByRole('switch', { name: 'Dark mode' }), page.locator('#zoom-level')]) {
     await expect(control).toBeVisible();
