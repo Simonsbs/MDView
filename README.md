@@ -36,6 +36,17 @@ Text size and reading position stay in place during refresh. Ordinary scrolling 
 
 Your theme and width choices are remembered when you reopen MDView. Until you choose a theme, the app follows your system's light or dark appearance. The width slider also supports the arrow keys, Home for 20%, and End for 100%.
 
+### Highlight while reading
+
+Turn on **Highlight** and choose **Click** to keep a passage highlighted, or **Hover** to follow the pointer. Choose the amount:
+
+- **Row** highlights the visible line of text, following the current width and text size.
+- **Sentence** highlights the sentence under the pointer, including inline formatting.
+- **Paragraph** highlights the current paragraph, heading, list item, table cell or code block.
+- **Chunk** highlights the pointed word plus the chosen number of **Words before** and **Words after**, continuing into adjacent paragraphs when needed. Set both counts to **0** for a single word.
+
+Press **Esc** to clear the current highlight, or turn **Highlight** off. Mode, amount and word counts are remembered across launches. Highlights are reading aids: they do not change the Markdown file, and they pause while you use the visual editor.
+
 ### Edit in the view
 
 Choose **Edit** or press **Ctrl+E** to edit the formatted document. The toolbar provides headings, bold, italic, strikethrough, inline code, lists and tasks, quotes, code blocks, links, images, tables, row and column insertion, undo and redo.

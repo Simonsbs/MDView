@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
 import { createVisualEditor } from './editor.js';
+import { createHighlighter } from './highlighter.js';
 
 const markdown = new MarkdownIt({ html: false, linkify: true, typographer: false }).use(taskLists);
 const reader = document.querySelector('#reader');
@@ -24,6 +25,13 @@ const editToolbar = document.querySelector('#edit-toolbar');
 const editStatus = document.querySelector('#edit-status');
 const discardDialog = document.querySelector('#discard-dialog');
 const insertDialog = document.querySelector('#insert-dialog');
+const highlightToolbar = document.querySelector('#highlight-toolbar');
+const highlightToggle = document.querySelector('#highlight-toggle');
+const highlightMode = document.querySelector('#highlight-mode');
+const highlightAmount = document.querySelector('#highlight-amount');
+const highlightBefore = document.querySelector('#highlight-before');
+const highlightAfter = document.querySelector('#highlight-after');
+const highlighter = createHighlighter(article, reader);
 let currentState = null;
 let editor = null;
 let editBase = null;
@@ -46,6 +54,52 @@ function savePreference(key, value) {
   try { localStorage.setItem(`mdview.${key}`, String(value)); }
   catch { /* The controls still work when preferences cannot be saved. */ }
 }
+
+function wordCount(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : 0;
+}
+
+const highlightSettings = {
+  enabled: readPreference('highlight.enabled') === 'true',
+  mode: readPreference('highlight.mode') === 'hover' ? 'hover' : 'click',
+  amount: ['row', 'sentence', 'paragraph', 'chunk'].includes(readPreference('highlight.amount'))
+    ? readPreference('highlight.amount') : 'sentence',
+  before: wordCount(readPreference('highlight.before')),
+  after: wordCount(readPreference('highlight.after')),
+};
+
+function applyHighlightSettings() {
+  highlightToggle.setAttribute('aria-pressed', String(highlightSettings.enabled));
+  highlightMode.value = highlightSettings.mode;
+  highlightAmount.value = highlightSettings.amount;
+  highlightBefore.value = String(highlightSettings.before);
+  highlightAfter.value = String(highlightSettings.after);
+  document.querySelector('#highlight-chunk').hidden = highlightSettings.amount !== 'chunk';
+  document.querySelector('#highlight-hint').textContent = !highlightSettings.enabled
+    ? 'Turn on to highlight as you read.'
+    : highlightSettings.mode === 'click' ? 'Click text to highlight. Esc clears.' : 'Hover over text to highlight.';
+  highlighter.configure({ ...highlightSettings, enabled: highlightSettings.enabled && !editor && Boolean(currentState?.path) });
+}
+
+function changeHighlightSetting(key, value) {
+  highlightSettings[key] = value;
+  savePreference(`highlight.${key}`, value);
+  applyHighlightSettings();
+}
+
+highlightToggle.addEventListener('click', () => changeHighlightSetting('enabled', !highlightSettings.enabled));
+highlightMode.addEventListener('change', () => changeHighlightSetting('mode', highlightMode.value));
+highlightAmount.addEventListener('change', () => changeHighlightSetting('amount', highlightAmount.value));
+for (const [input, key] of [[highlightBefore, 'before'], [highlightAfter, 'after']]) {
+  input.addEventListener('input', () => {
+    if (input.value !== '' && input.validity.valid && Number.isSafeInteger(input.valueAsNumber)) {
+      changeHighlightSetting(key, input.valueAsNumber);
+    }
+  });
+  input.addEventListener('change', () => changeHighlightSetting(key, wordCount(input.value)));
+}
+applyHighlightSettings();
 
 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
 const savedTheme = readPreference('theme');
@@ -81,6 +135,7 @@ widthSlider.addEventListener('input', () => {
   applyWidth(width);
   layoutVersion++;
   restorePosition(position);
+  highlighter.refresh();
   savePreference('width', width);
 });
 
@@ -126,12 +181,15 @@ function render(state) {
   emptyFile.hidden = Boolean(editor) || !state.path || Boolean(state.markdown.trim());
   editButton.hidden = !state.path || Boolean(editor);
   editButton.disabled = Boolean(state.error);
+  highlightToolbar.hidden = !state.path || Boolean(editor);
+  applyHighlightSettings();
   if (editor) return;
   if (state.path === lastPath && state.markdown === lastMarkdown) return;
 
   const sameDocument = state.path === lastPath;
   const position = capturePosition();
   const version = ++layoutVersion;
+  highlighter.reset();
   article.innerHTML = markdown.render(state.markdown);
   const headingIds = new Map();
   for (const heading of article.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
@@ -157,6 +215,7 @@ function render(state) {
   const initialScroll = reader.scrollTop;
   Promise.all([...article.querySelectorAll('img')].map(image => image.decode().catch(() => {}))).then(() => {
     if (sameDocument && version === layoutVersion && Math.abs(reader.scrollTop - initialScroll) < 2) restorePosition(position);
+    if (version === layoutVersion) highlighter.refresh();
   });
   lastPath = state.path;
   lastMarkdown = state.markdown;
@@ -351,6 +410,7 @@ window.addEventListener('wheel', event => {
   zoomLabel.textContent = `${zoom}%`;
   layoutVersion++;
   restorePosition(position);
+  highlighter.refresh();
 }, { passive: false });
 
 article.addEventListener('click', event => {

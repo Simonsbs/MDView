@@ -6,6 +6,13 @@ User-visible changes are recorded here. Versions follow [Semantic Versioning](ht
 
 No changes yet.
 
+## [1.3.0] - 2026-09-28
+
+### Added
+
+- Reading highlights with Click and Hover modes, and Row, Sentence, Paragraph or Chunk amounts.
+- Separate word counts before and after the pointed word; zero for both highlights a single word. Highlight preferences are remembered across launches.
+
 ## [1.2.0] - 2026-09-27
 
 ### Added
@@ -55,7 +62,8 @@ No changes yet.
 - Windows packages are unsigned. Linux packages require a compatible graphical desktop.
 - Windows default selection uses the system's own confirmation and cannot be silently forced by the installer.
 
-[Unreleased]: https://github.com/Simonsbs/MDView/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Simonsbs/MDView/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Simonsbs/MDView/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Simonsbs/MDView/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Simonsbs/MDView/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Simonsbs/MDView/releases/tag/v1.0.0

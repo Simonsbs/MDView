@@ -30,6 +30,26 @@
       <span class="zoom-hint" title="Hold Ctrl and scroll to resize the text">Ctrl + scroll <output id="zoom-level" aria-label="Text size">100%</output></span>
     </div>
   </header>
+  <div id="highlight-toolbar" class="highlight-toolbar" role="group" aria-label="Reading highlight" hidden>
+    <button id="highlight-toggle" type="button" aria-pressed="false" title="Turn reading highlights on or off">Highlight</button>
+    <label class="highlight-control" for="highlight-mode">Mode
+      <select id="highlight-mode"><option value="click">Click</option><option value="hover">Hover</option></select>
+    </label>
+    <label class="highlight-control" for="highlight-amount">Amount
+      <select id="highlight-amount">
+        <option value="row">Row</option>
+        <option value="sentence" selected>Sentence</option>
+        <option value="paragraph">Paragraph</option>
+        <option value="chunk">Chunk</option>
+      </select>
+    </label>
+    <span id="highlight-chunk" class="highlight-chunk" hidden>
+      <label class="highlight-control" for="highlight-before">Words before <input id="highlight-before" type="number" min="0" step="1" value="0" inputmode="numeric"></label>
+      <label class="highlight-control" for="highlight-after">Words after <input id="highlight-after" type="number" min="0" step="1" value="0" inputmode="numeric"></label>
+      <span class="highlight-hint">0 + 0 = one word</span>
+    </span>
+    <span id="highlight-hint" class="highlight-hint">Turn on to highlight as you read.</span>
+  </div>
   <div id="edit-toolbar" class="edit-toolbar" role="toolbar" aria-label="Text formatting" hidden>
     <select id="block-format" aria-label="Text style">
       <option value="paragraph">Paragraph</option>

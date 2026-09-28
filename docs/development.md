@@ -22,6 +22,7 @@ The app uses plain JavaScript, Electron, markdown-it, ProseMirror and esbuild. I
 | `src/default-app.cjs` | Windows registration and Linux desktop/MIME defaults |
 | `src/preload.cjs` | Narrow bridge for the sandboxed renderer |
 | `src/renderer.js` | Rendering, scroll retention, keyboard and wheel input |
+| `src/highlighter.js` | Pointer hit testing, reading ranges and visual row tracking |
 | `src/editor.js` | Visual editor, formatting commands, tables and task controls |
 | `src/editor-markdown.js` | CommonMark/GFM schema, safe parsing and Markdown serialization |
 | `src/index.html`, `src/styles.css` | Layout and styling |
@@ -33,6 +34,8 @@ The editor keeps a draft until Save (Ctrl+S); Edit uses Ctrl+E. Saving keeps the
 Changed documents preserve their UTF-8 or BOM-marked UTF-16 encoding, BOM and newline style. An unchanged editor document does not write the file. Serialization may normalize source whitespace, list markers and reference links. Unsupported table structures throw before writing. Both the viewer and editor disable raw HTML; editor link and image attributes are validated.
 
 Windows saves use the built-in Windows PowerShell to call .NET File.Replace; file paths are passed as child-process environment data. Linux uses an atomic rename. A failed replacement leaves the draft available in the editor.
+
+Reading highlights use DOM ranges and the CSS Custom Highlight API without wrapping or rewriting the rendered content. The reader suspends highlights while editing, resets them when replacing the document, and refreshes their geometry after layout changes. Highlight settings use the existing local preference storage.
 
 ## Tests
 
