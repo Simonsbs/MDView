@@ -379,7 +379,11 @@ test('enabled highlights preserve links and native drag selection', async () => 
   await enable('chunk');
   await pointAt('#markdown p:first-child', 'Alpha');
   await expectHighlight('Alpha');
-  await nativeDrag(start, end);
+  // Chunk controls can wrap the toolbar and move the text on other platforms.
+  await nativeDrag(
+    await textPoint('#markdown p:first-child', 'bravo', 0),
+    await textPoint('#markdown p:first-child', 'echo', 1),
+  );
   await expect.poll(() => page.evaluate(() => getSelection().toString())).toContain('charlie delta');
   expect(await highlightedText()).not.toBe('echo');
   await page.getByRole('link', { name: 'Website' }).click();
