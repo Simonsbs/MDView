@@ -6,6 +6,14 @@ User-visible changes are recorded here. Versions follow [Semantic Versioning](ht
 
 No changes yet.
 
+## [1.5.0] - 2026-10-20
+
+### Added
+
+- View-mode font selection, font weight and line-height controls with remembered preferences, reading-position preservation and refreshed reading highlights.
+- Font choices include System default, Arial, Calibri, Verdana, Georgia, Times New Roman and Monospace. Weight ranges from Light to Bold, and prose line height from 1.0 to 2.5. The visual editor and Markdown files keep their existing formatting.
+- Reading controls scroll in short windows so the document remains visible.
+
 ## [1.4.0] - 2026-10-20
 
 ### Added
@@ -70,7 +78,8 @@ No changes yet.
 - Windows packages are unsigned. Linux packages require a compatible graphical desktop.
 - Windows default selection uses the system's own confirmation and cannot be silently forced by the installer.
 
-[Unreleased]: https://github.com/Simonsbs/MDView/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Simonsbs/MDView/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Simonsbs/MDView/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/Simonsbs/MDView/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Simonsbs/MDView/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Simonsbs/MDView/compare/v1.1.0...v1.2.0

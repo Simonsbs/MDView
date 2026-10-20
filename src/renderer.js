@@ -16,6 +16,11 @@ const zoomLabel = document.querySelector('#zoom-level');
 const widthSlider = document.querySelector('#reading-width');
 const widthLabel = document.querySelector('#width-level');
 const themeToggle = document.querySelector('#theme-toggle');
+const typographyToolbar = document.querySelector('#typography-toolbar');
+const fontSelect = document.querySelector('#reading-font');
+const weightSelect = document.querySelector('#reading-weight');
+const lineHeightSlider = document.querySelector('#reading-line-height');
+const lineHeightLabel = document.querySelector('#line-height-level');
 const overlay = document.querySelector('#drop-overlay');
 const editorHost = document.querySelector('#editor');
 const editButton = document.querySelector('#edit-file');
@@ -139,6 +144,52 @@ widthSlider.addEventListener('input', () => {
   savePreference('width', width);
 });
 
+const readingFonts = {
+  system: '"Segoe UI", Ubuntu, system-ui, sans-serif',
+  arial: 'Arial, "Liberation Sans", sans-serif',
+  calibri: 'Calibri, Carlito, "Segoe UI", sans-serif',
+  verdana: 'Verdana, "DejaVu Sans", sans-serif',
+  georgia: 'Georgia, "Noto Serif", "DejaVu Serif", serif',
+  times: '"Times New Roman", "Liberation Serif", serif',
+  monospace: 'Consolas, "Liberation Mono", monospace',
+};
+const savedFont = readPreference('font');
+const savedWeight = readPreference('fontWeight');
+const savedLineHeight = Number(readPreference('lineHeight'));
+const typography = {
+  font: Object.hasOwn(readingFonts, savedFont) ? savedFont : 'system',
+  fontWeight: ['300', '400', '500', '600', '700'].includes(savedWeight) ? savedWeight : '400',
+  lineHeight: Number.isFinite(savedLineHeight) && savedLineHeight >= 1 && savedLineHeight <= 2.5
+    ? Math.round(savedLineHeight * 10) / 10 : 1.7,
+};
+
+function applyTypography() {
+  article.style.setProperty('--reading-font', readingFonts[typography.font]);
+  article.style.setProperty('--reading-weight', typography.fontWeight);
+  article.style.setProperty('--reading-line-height', String(typography.lineHeight));
+  fontSelect.value = typography.font;
+  weightSelect.value = typography.fontWeight;
+  lineHeightSlider.value = String(typography.lineHeight);
+  lineHeightSlider.setAttribute('aria-valuetext', `${typography.lineHeight} times the font size`);
+  lineHeightLabel.textContent = typography.lineHeight.toFixed(1);
+}
+
+function changeTypography(key, value) {
+  if (editor) return;
+  const position = capturePosition();
+  typography[key] = value;
+  applyTypography();
+  layoutVersion++;
+  restorePosition(position);
+  highlighter.refresh();
+  savePreference(key, value);
+}
+
+fontSelect.addEventListener('change', () => changeTypography('font', fontSelect.value));
+weightSelect.addEventListener('change', () => changeTypography('fontWeight', weightSelect.value));
+lineHeightSlider.addEventListener('input', () => changeTypography('lineHeight', lineHeightSlider.valueAsNumber));
+applyTypography();
+
 const blockKey = element => `${element.tagName}:${element.textContent}`;
 
 function capturePosition() {
@@ -182,6 +233,7 @@ function render(state) {
   editButton.hidden = !state.path || Boolean(editor);
   editButton.disabled = Boolean(state.error);
   highlightToolbar.hidden = !state.path || Boolean(editor);
+  typographyToolbar.hidden = Boolean(editor);
   applyHighlightSettings();
   if (editor) return;
   if (state.path === lastPath && state.markdown === lastMarkdown) return;

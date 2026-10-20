@@ -30,6 +30,34 @@
       <span class="zoom-hint" title="Hold Ctrl and scroll to resize the text">Ctrl + scroll <output id="zoom-level" aria-label="Text size">100%</output></span>
     </div>
   </header>
+  <div class="reading-controls">
+  <div id="typography-toolbar" class="typography-toolbar" role="group" aria-label="Reading text">
+    <label class="typography-control" for="reading-font">Font
+      <select id="reading-font">
+        <option value="system">System default</option>
+        <option value="arial">Arial</option>
+        <option value="calibri">Calibri</option>
+        <option value="verdana">Verdana</option>
+        <option value="georgia">Georgia</option>
+        <option value="times">Times New Roman</option>
+        <option value="monospace">Monospace</option>
+      </select>
+    </label>
+    <label class="typography-control" for="reading-weight">Weight
+      <select id="reading-weight" aria-label="Font weight">
+        <option value="300">Light</option>
+        <option value="400" selected>Normal</option>
+        <option value="500">Medium</option>
+        <option value="600">Semi-bold</option>
+        <option value="700">Bold</option>
+      </select>
+    </label>
+    <div class="typography-control line-height-control">
+      <label for="reading-line-height">Line height</label>
+      <input id="reading-line-height" type="range" min="1" max="2.5" step="0.1" value="1.7">
+      <output id="line-height-level" for="reading-line-height">1.7</output>
+    </div>
+  </div>
   <div id="highlight-toolbar" class="highlight-toolbar" role="group" aria-label="Reading highlight" hidden>
     <button id="highlight-toggle" type="button" aria-pressed="false" title="Turn reading highlights on or off">Highlight</button>
     <label class="highlight-control" for="highlight-mode">Mode
@@ -49,6 +77,7 @@
       <span class="highlight-hint">0 + 0 = one word</span>
     </span>
     <span id="highlight-hint" class="highlight-hint">Turn on to highlight as you read.</span>
+  </div>
   </div>
   <div id="edit-toolbar" class="edit-toolbar" role="toolbar" aria-label="Text formatting" hidden>
     <select id="block-format" aria-label="Text style">

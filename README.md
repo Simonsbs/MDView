@@ -36,6 +36,8 @@ Text size and reading position stay in place during refresh. Ordinary scrolling 
 
 Your theme and width choices are remembered when you reopen MDView. Until you choose a theme, the app follows your system's light or dark appearance. The width slider also supports the arrow keys, Home for 20%, and End for 100%.
 
+In view mode, use **Font**, **Weight** and **Line height** to adjust the reading text. Choose a system, sans-serif, serif or monospace font, a weight from Light to Bold, and line spacing from **1.0** to **2.5**. These choices are remembered and preserve your reading position. Named fonts use suitable fallbacks when unavailable. Code keeps its monospace font, and headings and code keep their existing line spacing. These controls do not change the editor or the Markdown file.
+
 ### Highlight while reading
 
 Turn on **Highlight** and choose **Click** to keep a passage highlighted, or **Hover** to follow the pointer. Choose the amount:

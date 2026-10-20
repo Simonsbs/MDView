@@ -1,6 +1,6 @@
 # Releasing
 
-The package version, changelog and Git tag must agree. Use Semantic Versioning. Version 1.0.0 is the initial public release. The current release is 1.4.0.
+The package version, changelog and Git tag must agree. Use Semantic Versioning. Version 1.0.0 is the initial public release. The current release is 1.5.0.
 
 ## Prepare
 
@@ -13,9 +13,9 @@ The package version, changelog and Git tag must agree. Use Semantic Versioning. 
 ## Publish
 
 ```sh
-git tag -a v1.4.0 -m "MDView 1.4.0"
+git tag -a v1.5.0 -m "MDView 1.5.0"
 git push origin main
-git push origin v1.4.0
+git push origin v1.5.0
 ```
 
 Substitute the version being released. GitHub Actions tests both platforms, builds packages natively and checks the packaged apps. For a matching version tag, a final job generates checksums and notes, then publishes a GitHub Release after both platforms pass.
