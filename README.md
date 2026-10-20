@@ -45,6 +45,8 @@ Turn on **Highlight** and choose **Click** to keep a passage highlighted, or **H
 - **Paragraph** highlights the current paragraph, heading, list item, table cell or code block.
 - **Chunk** highlights the pointed word plus the chosen number of **Words before** and **Words after**, continuing into adjacent paragraphs when needed. Set both counts to **0** for a single word.
 
+In **Click** mode, tap **Left Ctrl** by itself to advance to the next row, sentence, paragraph or full word chunk. With no current highlight, it starts at the beginning. Chunks advance without repeating words and use **Words before + 1 + Words after** words, with a shorter final chunk when needed. The next passage scrolls into view, and the highlight stays on the last passage at the end. Other Ctrl shortcuts and Ctrl+scroll keep their usual behavior.
+
 Press **Esc** to clear the current highlight, or turn **Highlight** off. Mode, amount and word counts are remembered across launches. Highlights are reading aids: they do not change the Markdown file, and they pause while you use the visual editor.
 
 ### Edit in the view

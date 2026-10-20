@@ -76,6 +76,10 @@ async function expectHighlight(text) {
   await expect.poll(highlightedText).toBe(text);
 }
 
+async function blurFocusedControl() {
+  await page.evaluate(() => document.activeElement?.blur());
+}
+
 async function enable(amount = 'sentence', mode = 'click') {
   await page.locator('#highlight-mode').selectOption(mode);
   await page.locator('#highlight-amount').selectOption(amount);
@@ -391,4 +395,209 @@ test('enabled highlights preserve links and native drag selection', async () => 
   await page.getByRole('link', { name: 'Next document' }).click();
   await expect(page.locator('#markdown')).toHaveText('Next document content.');
   await expectHighlight('');
+});
+
+test('Left Ctrl starts and advances sentences once on release, retaining the last sentence', async () => {
+  await launch('The first sentence. The **second sentence**!\n\nThe last sentence.');
+  await enable();
+  await blurFocusedControl();
+
+  await page.keyboard.down('ControlLeft');
+  await expectHighlight('');
+  await page.keyboard.down('ControlLeft');
+  await expectHighlight('');
+  await page.keyboard.up('ControlLeft');
+  await expectHighlight('The first sentence.');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('The second sentence!');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('The last sentence.');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('The last sentence.');
+
+  await pointAt('#markdown p:first-child', 'first');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('The second sentence!');
+});
+
+test('Left Ctrl advances paragraphs in reading order through nested lists, table cells and code', async () => {
+  await launch('# Heading\n\n- Outer **list entry**\n  - Nested child entry\n- Sibling entry\n\n| Left | Right |\n| --- | --- |\n| First cell | Second cell |\n\n```text\nfirst code line\nsecond code line\n```');
+  await enable('paragraph');
+  await blurFocusedControl();
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('Heading');
+  await pointAt('#markdown > ul > li:first-child', 'Outer');
+  await expectHighlight('Outer list entry');
+  for (const text of ['Nested child entry', 'Sibling entry', 'Left', 'Right', 'First cell', 'Second cell', 'first code line second code line']) {
+    await page.keyboard.press('ControlLeft');
+    await expectHighlight(text);
+  }
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('first code line second code line');
+});
+
+test('Left Ctrl advances rendered rows across hard breaks and wrapping without skipping text', async () => {
+  const paragraph = 'Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu.';
+  await launch(`First **bold** *italic* \`code\` row.  \nSecond short row.\n\n${paragraph}`);
+  await setWidth(35);
+  await enable('row');
+  await blurFocusedControl();
+  for (const text of ['First bold italic code row.', 'Second short row.']) {
+    await page.keyboard.press('ControlLeft');
+    await expectHighlight(text);
+  }
+
+  const rows = [];
+  let previous = 'Second short row.';
+  for (let index = 0; index < 20 && rows.join(' ') !== paragraph; index++) {
+    await page.keyboard.press('ControlLeft');
+    await expect.poll(highlightedText).not.toBe(previous);
+    const text = await highlightedText();
+    expect(text).not.toBe('');
+    expect(paragraph.startsWith([...rows, text].join(' '))).toBe(true);
+    await expect.poll(highlightRows).toBe(1);
+    rows.push(text);
+    previous = text;
+  }
+  expect(rows.length).toBeGreaterThan(1);
+  expect(rows.join(' ')).toBe(paragraph);
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight(rows.at(-1));
+});
+
+test('Left Ctrl advances adjacent chunks by the complete configured word count', async () => {
+  await launch('alpha bravo charlie\n\ndelta **echo** foxtrot golf hotel india juliet');
+  await enable('chunk');
+  await setCount('before', 2);
+  await setCount('after', 1);
+  await blurFocusedControl();
+  for (const text of ['alpha bravo charlie delta', 'echo foxtrot golf hotel', 'india juliet', 'india juliet']) {
+    await page.keyboard.press('ControlLeft');
+    await expectHighlight(text);
+  }
+
+  // A pointer selection can be truncated at the beginning. Its successor still
+  // starts after the selected words and uses the full before + 1 + after count.
+  await pointAt('#markdown p:first-child', 'alpha');
+  await expectHighlight('alpha bravo');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('charlie delta echo foxtrot');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('golf hotel india juliet');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('golf hotel india juliet');
+});
+
+test('Right Ctrl and Ctrl chords, wheel, pointer actions and focus loss do not advance', async () => {
+  await launch('First sentence. Second sentence. Third sentence.');
+  await enable();
+  await pointAt('#markdown p', 'First');
+  await page.keyboard.press('ControlRight');
+  await expectHighlight('First sentence.');
+  // Playwright represents both Ctrl keys with one modifier bit. Explicit events
+  // preserve the held right key when the left key is released.
+  await page.evaluate(() => {
+    for (const [type, code, ctrlKey] of [
+      ['keydown', 'ControlRight', true], ['keydown', 'ControlLeft', true],
+      ['keyup', 'ControlLeft', true], ['keyup', 'ControlRight', false],
+    ]) {
+      document.body.dispatchEvent(new KeyboardEvent(type, {
+        key: 'Control', code, ctrlKey, location: code === 'ControlLeft' ? 1 : 2, bubbles: true,
+      }));
+    }
+  });
+  await expectHighlight('First sentence.');
+  await page.keyboard.press('ControlLeft+c');
+  await expectHighlight('First sentence.');
+  await page.keyboard.press('ControlLeft+ShiftRight');
+  await expectHighlight('First sentence.');
+
+  await page.keyboard.down('ControlLeft');
+  await page.mouse.wheel(0, -120);
+  await expect(page.locator('#zoom-level')).toHaveText('110%');
+  await page.keyboard.up('ControlLeft');
+  await expectHighlight('First sentence.');
+
+  await page.keyboard.down('ControlLeft');
+  await pointAt('#markdown p', 'Second');
+  await expectHighlight('Second sentence.');
+  await page.keyboard.up('ControlLeft');
+  await expectHighlight('Second sentence.');
+
+  await page.keyboard.down('ControlLeft');
+  // Exercise cancellation directly: native blur depends on the desktop window
+  // manager and is not reliable on Windows runners or Linux under Xvfb.
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.keyboard.up('ControlLeft');
+  await expectHighlight('Second sentence.');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('Third sentence.');
+});
+
+test('Left Ctrl only advances while highlights are enabled in click mode', async () => {
+  await launch('First sentence. Second sentence.');
+  await blurFocusedControl();
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('');
+  await enable('sentence', 'hover');
+  await pointAt('#markdown p', 'First', 'hover');
+  await blurFocusedControl();
+  await expectHighlight('First sentence.');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('First sentence.');
+  await page.locator('#highlight-mode').selectOption('click');
+  await blurFocusedControl();
+  await expectHighlight('');
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('First sentence.');
+  await page.locator('#highlight-toggle').click();
+  await blurFocusedControl();
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('');
+});
+
+test('Left Ctrl leaves focused controls and the visual editor alone', async () => {
+  const source = 'alpha bravo charlie delta';
+  await launch(source);
+  await enable('chunk');
+  await pointAt('#markdown p', 'alpha');
+  await expectHighlight('alpha');
+  for (const id of ['highlight-before', 'highlight-after', 'highlight-mode', 'highlight-amount', 'reading-width']) {
+    await page.locator(`#${id}`).focus();
+    await page.keyboard.press('ControlLeft');
+    await expectHighlight('alpha');
+  }
+  await blurFocusedControl();
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('bravo');
+
+  await page.locator('#edit-file').click();
+  const editor = page.getByRole('textbox', { name: 'Edit Markdown document' });
+  await expect(editor).toBeVisible();
+  await editor.focus();
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('');
+  await expect(editor).toHaveText(source);
+  await page.locator('#cancel-edit').click();
+  await blurFocusedControl();
+  await page.keyboard.press('ControlLeft');
+  await expectHighlight('alpha');
+  expect(await readFile(file, 'utf8')).toBe(source);
+});
+
+test('Left Ctrl scrolls the next highlighted paragraph into the reader viewport', async () => {
+  await launch(Array.from({ length: 40 }, (_, index) => `Paragraph ${index + 1} is ready.`).join('\n\n'));
+  await enable('paragraph');
+  await blurFocusedControl();
+  for (let index = 1; index <= 25; index++) await page.keyboard.press('ControlLeft');
+  await expectHighlight('Paragraph 25 is ready.');
+  await expect.poll(() => page.locator('#reader').evaluate(reader => reader.scrollTop)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => {
+    const viewport = document.querySelector('#reader').getBoundingClientRect();
+    const ranges = [...(CSS.highlights.get('reading-focus') || [])];
+    return ranges.length > 0 && ranges.every(range => {
+      const bounds = range.getBoundingClientRect();
+      return bounds.top >= viewport.top - 1 && bounds.bottom <= viewport.bottom + 1;
+    });
+  })).toBe(true);
 });

@@ -78,7 +78,7 @@ function applyHighlightSettings() {
   document.querySelector('#highlight-chunk').hidden = highlightSettings.amount !== 'chunk';
   document.querySelector('#highlight-hint').textContent = !highlightSettings.enabled
     ? 'Turn on to highlight as you read.'
-    : highlightSettings.mode === 'click' ? 'Click text to highlight. Esc clears.' : 'Hover over text to highlight.';
+    : highlightSettings.mode === 'click' ? 'Click text to highlight. Left Ctrl advances. Esc clears.' : 'Hover over text to highlight.';
   highlighter.configure({ ...highlightSettings, enabled: highlightSettings.enabled && !editor && Boolean(currentState?.path) });
 }
 

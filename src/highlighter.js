@@ -23,8 +23,10 @@ export function createHighlighter(article, reader) {
   let frame = 0;
   let destroyed = false;
   let rowCache = null;
+  let ctrlTap = false;
 
   function clear() {
+    ctrlTap = false;
     registry?.delete(HIGHLIGHT_NAME);
     anchor = null;
     rowCache = null;
@@ -184,14 +186,16 @@ export function createHighlighter(article, reader) {
     return null;
   }
 
-  function chunk(run, offset) {
+  function chunk(run, offset, forward = false) {
+    const before = forward ? 0 : settings.before;
+    const after = forward ? settings.before + settings.after : settings.after;
     const words = wordsFor(run);
     if (!words.length) return [];
     let target = lowerBound(words.length, index => words[index].end > offset);
     if (target === words.length) target--;
     else if (target > 0 && offset < words[target].start && offset - words[target - 1].end <= words[target].start - offset) target--;
-    const selected = [{ run, start: Math.max(0, target - settings.before), end: Math.min(words.length - 1, target + settings.after) }];
-    let remaining = settings.before - target;
+    const selected = [{ run, start: Math.max(0, target - before), end: Math.min(words.length - 1, target + after) }];
+    let remaining = before - target;
     let next = run;
     while (remaining > 0 && (next = neighbor(next, -1))) {
       const adjacent = wordsFor(next);
@@ -201,7 +205,7 @@ export function createHighlighter(article, reader) {
       remaining -= take;
     }
     selected.reverse();
-    remaining = settings.after - (words.length - 1 - target);
+    remaining = after - (words.length - 1 - target);
     next = run;
     while (remaining > 0 && (next = neighbor(next, 1))) {
       const adjacent = wordsFor(next);
@@ -258,7 +262,7 @@ export function createHighlighter(article, reader) {
     const offset = entry.start + hit.offset;
     let ranges;
     if (settings.amount === 'paragraph') ranges = trimmedRange(run, 0, run.text.length);
-    else if (settings.amount === 'chunk') ranges = chunk(run, offset);
+    else if (settings.amount === 'chunk') ranges = chunk(run, offset, hit.forward);
     else if (settings.amount === 'sentence') {
       run.sentences ||= [...sentenceSegmenter.segment(run.text)];
       const sentence = run.sentences[lowerBound(run.sentences.length, index => {
@@ -271,7 +275,53 @@ export function createHighlighter(article, reader) {
     const highlight = new win.Highlight();
     for (const range of ranges) highlight.add(range);
     registry.set(HIGHLIGHT_NAME, highlight);
-    anchor = { node: hit.node, offset: hit.offset };
+    anchor = { node: hit.node, offset: hit.offset, forward: hit.forward };
+  }
+
+  function advance() {
+    const current = [...(registry.get(HIGHLIGHT_NAME) || [])];
+    const end = current.at(-1);
+    let position;
+    let offset = 0;
+    if (end) {
+      position = indexed(end.endContainer);
+      if (position) offset = position.entry.start + end.endOffset;
+    } else {
+      const walker = doc.createTreeWalker(article, win.NodeFilter.SHOW_TEXT, {
+        acceptNode: node => usable(node) ? win.NodeFilter.FILTER_ACCEPT : win.NodeFilter.FILTER_REJECT,
+      });
+      let node;
+      while ((node = walker.nextNode()) && !(position = indexed(node))) { /* Skip excluded text. */ }
+    }
+    let run = position?.run;
+    while (run) {
+      let from;
+      if (settings.amount === 'chunk') {
+        const words = wordsFor(run);
+        from = words[lowerBound(words.length, index => words[index].start >= offset)]?.start;
+      } else {
+        const start = run.text.slice(offset).search(/\S/u);
+        if (start >= 0) from = offset + start;
+      }
+      if (from !== undefined) {
+        const range = rangesFor(run, from, run.text.length)[0];
+        if (range) {
+          const node = range.startContainer;
+          const item = character(node, range.startOffset);
+          const rect = characterRect(node, item.index, item.index + item.segment.length);
+          // Keyboard chunks start after the previous chunk and keep their full
+          // configured size, even when the last chunk must be shorter.
+          paint({ node, offset: item.index, rect, forward: settings.amount === 'chunk' });
+          const viewport = reader.getBoundingClientRect();
+          if (rect.top < viewport.top) reader.scrollTop += rect.top - viewport.top;
+          else if (rect.bottom > viewport.bottom) reader.scrollTop += rect.bottom - viewport.bottom;
+          return;
+        }
+      }
+      run = neighbor(run, 1);
+      offset = 0;
+    }
+    // Keep the final highlight when there is no more readable text.
   }
 
   function repaintAnchor() {
@@ -310,6 +360,7 @@ export function createHighlighter(article, reader) {
   }
 
   function configure(next) {
+    ctrlTap = false;
     const previous = settings;
     settings = {
       enabled: Boolean(next.enabled),
@@ -355,13 +406,38 @@ export function createHighlighter(article, reader) {
 
   function keyDown(event) {
     if (event.key === 'Escape') { hoverPoint = null; clear(); }
+    if (event.code !== 'ControlLeft') { cancelCtrlTap(); return; }
+    if (!event.repeat) ctrlTap = canAdvance(event);
+  }
+
+  function canAdvance(event) {
+    const target = event.target;
+    return supported && !destroyed && settings.enabled && settings.mode === 'click'
+      && !event.altKey && !event.shiftKey && !event.metaKey && !event.isComposing
+      && !target?.closest?.('input, select, textarea') && !target?.isContentEditable
+      && !doc.querySelector('dialog[open]');
+  }
+
+  function cancelCtrlTap() {
+    ctrlTap = false;
+  }
+
+  function keyUp(event) {
+    const shouldAdvance = ctrlTap && event.code === 'ControlLeft' && !event.ctrlKey && canAdvance(event);
+    cancelCtrlTap();
+    if (shouldAdvance) advance();
   }
 
   article.addEventListener('pointerdown', pointerDown);
   article.addEventListener('pointermove', pointerMove);
   article.addEventListener('pointerleave', pointerLeave);
   article.addEventListener('click', click);
-  doc.addEventListener('keydown', keyDown);
+  doc.addEventListener('keydown', keyDown, true);
+  doc.addEventListener('keyup', keyUp, true);
+  doc.addEventListener('pointerdown', cancelCtrlTap, true);
+  doc.addEventListener('wheel', cancelCtrlTap, { capture: true, passive: true });
+  doc.addEventListener('focusin', cancelCtrlTap, true);
+  win.addEventListener('blur', cancelCtrlTap);
   reader.addEventListener('scroll', refresh, true);
   win.addEventListener('resize', refresh);
   const observer = win.ResizeObserver ? new win.ResizeObserver(refresh) : null;
@@ -377,7 +453,12 @@ export function createHighlighter(article, reader) {
       article.removeEventListener('pointermove', pointerMove);
       article.removeEventListener('pointerleave', pointerLeave);
       article.removeEventListener('click', click);
-      doc.removeEventListener('keydown', keyDown);
+      doc.removeEventListener('keydown', keyDown, true);
+      doc.removeEventListener('keyup', keyUp, true);
+      doc.removeEventListener('pointerdown', cancelCtrlTap, true);
+      doc.removeEventListener('wheel', cancelCtrlTap, true);
+      doc.removeEventListener('focusin', cancelCtrlTap, true);
+      win.removeEventListener('blur', cancelCtrlTap);
       reader.removeEventListener('scroll', refresh, true);
       win.removeEventListener('resize', refresh);
     },
